@@ -1,23 +1,7 @@
-//
-// This file is part of the GNU ARM Eclipse distribution.
-// Copyright (c) 2014 Liviu Ionescu.
-//
-
 #include <stdio.h>
 #include "diag/Trace.h"
 #include "stm32f051x8.h"
 #include "cmsis/cmsis_device.h"
-
-// ----------------------------------------------------------------------------
-//
-// STM32F0 empty sample (trace via $(trace)).
-//
-// Trace support is enabled by adding the TRACE macro definition.
-// By default the trace messages are forwarded to the $(trace) output,
-// but can be rerouted to any device or completely suppressed, by
-// changing the definitions required in system/src/diag/trace_impl.c
-// (currently OS_USE_TRACE_ITM, OS_USE_TRACE_SEMIHOSTING_DEBUG/_STDOUT).
-//
 
 // ----- main() ---------------------------------------------------------------
 
@@ -71,41 +55,32 @@ uint32_t inSig = 0;
 
 void SystemClock48MHz( void )
 {
-//
+
 // Disable the PLL
-//
     RCC->CR &= ~(RCC_CR_PLLON);
-//
+
 // Wait for the PLL to unlock
-//
     while (( RCC->CR & RCC_CR_PLLRDY ) != 0 );
-//
+
 // Configure the PLL for 48-MHz system clock
-//
-    RCC->CFGR = 0x00280000;
-//
+	RCC->CFGR = 0x00280000;
+
 // Enable the PLL
-//
-    RCC->CR |= RCC_CR_PLLON;
-//
+	RCC->CR |= RCC_CR_PLLON;
+
 // Wait for the PLL to lock
-//
     while (( RCC->CR & RCC_CR_PLLRDY ) != RCC_CR_PLLRDY );
-//
+
 // Switch the processor to the PLL clock source
-//
     RCC->CFGR = ( RCC->CFGR & (~RCC_CFGR_SW_Msk)) | RCC_CFGR_SW_PLL;
-//
+	
 // Update the system with the new clock frequency
-//
     SystemCoreClockUpdate();
 
 }
 
 /*****************************************************************/
-//
 // LED Display initialization commands
-//
 unsigned char oled_init_cmds[] =
 {
     0xAE,
@@ -129,12 +104,6 @@ unsigned char oled_init_cmds[] =
     0xA0
 };
 
-//
-// Character specifications for LED Display (1 row = 8 bytes = 1 ASCII character)
-// Example: to display '4', retrieve 8 data bytes stored in Characters[52][X] row
-//          (where X = 0, 1, ..., 7) and send them one by one to LED Display.
-// Row number = character ASCII code (e.g., ASCII code of '4' is 0x34 = 52)
-//
 unsigned char Characters[][8] = {
     {0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,0b00000000, 0b00000000, 0b00000000},  // SPACE
     {0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,0b00000000, 0b00000000, 0b00000000},  // SPACE
@@ -750,11 +719,6 @@ void oled_Write( unsigned char Value ) //send single byte over spi to oled
 
 void oled_config( void )
 {
-	
-	// Don't forget to enable GPIOB clock in RCC
-	// Don't forget to configure PB3/PB5 as AF0
-	// Don't forget to enable SPI1 clock in RCC
-	
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	
 	GPIOB->AFR[1] &= ~(0x0F << (3 * 4)); // clear AFR bit in PB3
@@ -790,7 +754,7 @@ void oled_config( void )
     GPIOB->ODR |= GPIO_ODR_4; // make pin PB4 = 1, wait for a few ms
 	for(int i = 0; i < 1000; i++); //wait
 
-// Send initialization commands to LED display
+    // Send initialization commands to LED display
     for ( unsigned int i = 0; i < sizeof( oled_init_cmds ); i++ )
     {
         oled_Write_Cmd( oled_init_cmds[i] );
