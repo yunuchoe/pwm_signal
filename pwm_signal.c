@@ -3,15 +3,6 @@
 // Copyright (c) 2014 Liviu Ionescu.
 //
 
-// ----------------------------------------------------------------------------
-// School: University of Victoria, Canada.
-// Course: ECE 355 "Microprocessor-Based Systems".
-// This is our project code
-//
-// See "system/include/cmsis/stm32f051x8.h" for register/bit definitions.
-// See "system/src/cmsis/vectors_stm32f051x8.c" for handler declarations.
-// ----------------------------------------------------------------------------
-
 #include <stdio.h>
 #include "diag/Trace.h"
 #include "stm32f051x8.h"
@@ -50,7 +41,7 @@
 unsigned int Freq = 0;  // measured frequency value (global variable)
 unsigned int Res = 0;   // measured resistance value (global variable)
 
-
+// init functions
 void myGPIOA_Init(void);
 void myTIM2_Init(void);
 void myEXTI_Init(void);
@@ -70,13 +61,7 @@ void oled_config(void);
 
 void refresh_OLED(void);
 
-
 SPI_HandleTypeDef SPI_Handle;
-
-// Declare/initialize your global variables here...
-// NOTE: You'll need at least one global variable
-// (say, timerTriggered = 0 or 1) to indicate
-// whether TIM2 has started counting or not.
 
 uint32_t timerTriggered = 0;
 uint32_t inSig = 0;
@@ -291,14 +276,14 @@ int main(int argc, char* argv[])
 	trace_printf("This is the Project\n");
 	trace_printf("System clock: %u Hz\n", SystemCoreClock);
 
-	myGPIOA_Init();		/* Initialize I/O port PA */
+	myGPIOA_Init();	// initialize I/O port PA
  	myGPIOB_Init(); // initalize PB
 	myDAC_Init(); // initialize DAC
-	myTIM2_Init();		/* Initialize timer TIM2 */
+	myTIM2_Init(); //Initialize timer TIM2
 	myADC_Init(); // initialize ADC
 	oled_config(); // configure the screen
 	refresh_OLED(); // clock the first tick of the screen so that it is up before any other interupts
-	myEXTI_Init();		/* Initialize EXTI */
+	myEXTI_Init(); //initialize EXTI
 
 
 	while (1)
@@ -306,7 +291,6 @@ int main(int argc, char* argv[])
 		read_DAC(); // read dac (cont. updates the dac value as well)
 
 		refresh_OLED(); // refresh screen
-
 	}
 	return 0;
 }
@@ -438,86 +422,74 @@ void EXTI0_1_IRQHandler(){
 	uint32_t count;
 
 	/* Check if EXTI1 interrupt pending flag is indeed set */
-	// similar to lab 2 and repeat of exti2 below
-	// this reads off adc
 	if ((EXTI->PR & EXTI_PR_PR1) != 0) {
-		/* This code section is for measuring frequency on
-		EXTI1 when inSig = 0 */
-		//read_DAC();
+		
+		//when EXTI1 when inSig = 0 */
 
-			// 1. If this is the first edge:
-			//	- Clear count register (TIM2->CNT).
-			//	- Start timer (TIM2->CR1).
-			//    Else (this is the second edge):
-			//	- Stop timer (TIM2->CR1).
-			//	- Read out count register (TIM2->CNT).
-			//	- Calculate signal period and frequency.
-			//	- Print calculated values to the console.
-			//	  NOTE: Function trace_printf does not work
-			//	  with floating-point numbers: you must use
-			//	  "unsigned int" type to print your signal
-			//	  period and frequency.
-				if((EXTI->PR & EXTI_PR_PR1) != 0){ // check intterupt 1
-					if(timerTriggered == 0){ // first edge
-						timerTriggered = 1; // swap
-						count = 0; // clear count
+		// If this is the first edge:
+		//	Clear count register (TIM2->CNT).
+		//	Start timer (TIM2->CR1).
+		//  Else (this is the second edge):
+		//	Stop timer (TIM2->CR1).
+		//	Read out count register (TIM2->CNT).
+		//	Calculate signal period and frequency.
+		//	Print calculated values to the console.
+		if((EXTI->PR & EXTI_PR_PR1) != 0){ // check interupt 1
+			if(timerTriggered == 0){ // first edge
+				timerTriggered = 1; // swap
+				count = 0; // clear count
 
-						TIM2->CNT = 0; // clear count register
+				TIM2->CNT = 0; // clear count register
 
-						TIM2->CR1 |= TIM_CR1_CEN;; // start timer
-					}else{ // second edge
-						timerTriggered = 0; // swap
+				TIM2->CR1 |= TIM_CR1_CEN;; // start timer
+			}else{ // second edge
+				timerTriggered = 0; // swap
 
-						TIM2->CR1 &= ~(TIM_CR1_CEN); // stop timer
+				TIM2->CR1 &= ~(TIM_CR1_CEN); // stop timer
 
-						count = TIM2->CNT; // update count
+				count = TIM2->CNT; // update count
 
-						freq = ((double)SystemCoreClock)/((double)count); // record freq
+				freq = ((double)SystemCoreClock)/((double)count); // record freq
 
-						trace_printf("Source: 555\n");
-						trace_printf("The Frequency is: %f Hz\n", freq);
-						//read_DAC();
-						trace_printf("The Resistance is: %f ohms\n\n", (float)Potentiometer_resistance());
+				trace_printf("Source: 555\n");
+				trace_printf("The Frequency is: %f Hz\n", freq);
+				trace_printf("The Resistance is: %f ohms\n\n", (float)Potentiometer_resistance());
 
-						Freq = (unsigned int)freq; //transmist to the global vresion for our display
-						Res = (unsigned int)Potentiometer_resistance(); // transmit to glboal version for our display
-					}
-				}
-			if((EXTI->PR & EXTI_PR_PR0) != 0){ // is button pressed?
-				while((GPIOA->IDR & GPIO_IDR_0) != 0){} // wait for button
-				//trace_printf("\nButton hit\n");
-				EXTI->IMR &= ~(EXTI_IMR_MR1); // disable this interupt (1)
-				EXTI->IMR &= ~(EXTI_IMR_MR0); // clear and set intterupt 0
-				EXTI->IMR |= (EXTI_IMR_MR0);
+				Freq = (unsigned int)freq; //transmist to the global vresion for our display
+				Res = (unsigned int)Potentiometer_resistance(); // transmit to global version for our display
 			}
+		}
+		if((EXTI->PR & EXTI_PR_PR0) != 0){ // is button pressed?
+			while((GPIOA->IDR & GPIO_IDR_0) != 0){} // wait for button
+			EXTI->IMR &= ~(EXTI_IMR_MR1); // disable this interupt (1)
+			EXTI->IMR &= ~(EXTI_IMR_MR0); // clear and set intterupt 0
+			EXTI->IMR |= (EXTI_IMR_MR0);
+		}
 
-			// 2. Clear EXTI1 interrupt pending flag (EXTI->PR).
-			// NOTE: A pending register (PR) bit is cleared
-			// by writing 1 to it.
-			EXTI->PR |= EXTI_PR_PR1;
+		// Clear EXTI1 interrupt pending flag (EXTI->PR).
+		EXTI->PR |= EXTI_PR_PR1;
 	}
 
 
 	if ((EXTI->PR & EXTI_PR_PR0) != 0) { // intterupt 0
-		/* If inSig = 0, then: let inSig = 1, disable
-		EXTI1 interrupts, enable EXTI2 interrupts */
-		/* Else: let inSig = 0, disable EXTI2 interrupts,
-		enable EXTI1 interrupts */
+		/* 
+  		If inSig = 0, then: let inSig = 1, disable
+		EXTI1 interrupts, enable EXTI2 interrupts
+		Else: let inSig = 0, disable EXTI2 interrupts,
+		enable EXTI1 interrupts 
+  		*/
 
 		EXTI->PR |= 0x1; // clear interupt pending flag for exti 0
 
-		while((GPIOA->IDR & GPIO_IDR_0) != 0){} // button
-		//trace_printf("\nButton hit\n");
+
 
 //		inSig = 0 is 555
 //		inSig = 1 is fg
 		if(inSig == 0){
-			//trace_printf("Changing inSIG to 1");
 			inSig = 1; // swap
 			EXTI->IMR &= ~(1 << 1);//disable exti1
 			EXTI->IMR |= (1 << 2); //enable exti2
 		}else{
-			//trace_printf("Changing inSIG to 0");
 			inSig = 0; // swap
 			EXTI->IMR &= ~(1 << 2);//disable exti2
 			EXTI->IMR |= (1 << 1);//enable exti1
@@ -528,24 +500,11 @@ void EXTI0_1_IRQHandler(){
 
 void EXTI2_3_IRQHandler()
 {
-	// Declare/initialize your local variables here...
 	double freq;
 	uint32_t count;
 	/* Check if EXTI2 interrupt pending flag is indeed set */
 	// this reads off function generator
 	if ((EXTI->PR & EXTI_PR_PR2) != 0){
-		// 1. If this is the first edge:
-		//	- Clear count register (TIM2->CNT).
-		//	- Start timer (TIM2->CR1).
-		//    Else (this is the second edge):
-		//	- Stop timer (TIM2->CR1).
-		//	- Read out count register (TIM2->CNT).
-		//	- Calculate signal period and frequency.
-		//	- Print calculated values to the console.
-		//	  NOTE: Function trace_printf does not work
-		//	  with floating-point numbers: you must use
-		//	  "unsigned int" type to print your signal
-		//	  period and frequency.
 
 		// same method as above
 			if((EXTI->PR & EXTI_PR_PR2) != 0){
@@ -577,16 +536,11 @@ void EXTI2_3_IRQHandler()
 		// button press in this inttereupt
 		if((EXTI->PR & EXTI_PR_PR0) != 0){ // is button pressed?
 			while((GPIOA->IDR & GPIO_IDR_0) != 0){} // wait for button
-			//trace_printf("\nButton hit\n");
 			EXTI->IMR &= ~(EXTI_IMR_MR2); // disable this interupt
 			EXTI->IMR &= ~(EXTI_IMR_MR0); // clear adn set button
 			EXTI->IMR |= (EXTI_IMR_MR0);
 		}
 
-
-		// 2. Clear EXTI2 interrupt pending flag (EXTI->PR).
-		// NOTE: A pending register (PR) bit is cleared
-		// by writing 1 to it.
 		EXTI->PR |= EXTI_PR_PR2;
 
 	}
@@ -654,10 +608,7 @@ uint32_t Potentiometer_resistance(){
 	// Full_scale = 2^12 - 1 = 4095 with 12 bit resolution (maximum digital value of the ADC output)
 
 	float v_channel = (ADC_value * 3.3f) / (4095.0f);// 4095 = 2^12 - 1
-
-	// Potentiometer_resistance = resistor * (v_channel / (Vdda - v_channel)) via voltage dividor
-
-	//trace_printf("Potentiometer resistance: %f\n", 5000.0f * (v_channel / (3.3f - v_channel)));
+	
 	return 5000.0f * (v_channel / (3.3f - v_channel)); // resistance in circuit is given as 5k ohms
 }
 
@@ -677,8 +628,6 @@ void read_DAC(){
 
 void myGPIOB_Init()
 {
-	/* Enable clock for GPIOB peripheral */
-	// Relevant register: RCC->AHBENR
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 
 	//	00: Input mode (reset state)
@@ -719,18 +668,13 @@ void myGPIOB_Init()
 
 
 // LED Display Functions
-
 void refresh_OLED( void )
 {
-    // Buffer size = at most 16 characters per PAGE + terminating '\0'
-    unsigned char Buffer[17];
+	// Buffer size = at most 16 characters per PAGE + terminating '\0'
+    	unsigned char Buffer[17];
 
-    snprintf( Buffer, sizeof( Buffer ), "  R: %5u Ohms  ", Res );
-    /* Buffer now contains your character ASCII codes for LED Display
-       - select PAGE (LED Display line) and set starting SEG (column)
-       - for each c = ASCII code = Buffer[0], Buffer[1], ...,
-           send 8 bytes in Characters[c][0-7] to LED Display
-    */
+    	snprintf( Buffer, sizeof( Buffer ), "  R: %5u Ohms  ", Res );
+
 	oled_Write_Cmd(0xB3); //select page from 0xb0 to 0xb7
 	oled_Write_Cmd(0x03); //fill every pixel on each page with 0x00, set lower column to 0
 	oled_Write_Cmd(0x10); //select upper nibble for the column
@@ -742,11 +686,7 @@ void refresh_OLED( void )
 	}
 
     snprintf( Buffer, sizeof( Buffer ), "  F: %5u Hz  ", Freq );
-    /* Buffer now contains your character ASCII codes for LED Display
-       - select PAGE (LED Display line) and set starting SEG (column)
-       - for each c = ASCII code = Buffer[0], Buffer[1], ...,
-           send 8 bytes in Characters[c][0-7] to LED Display
-    */
+
 	oled_Write_Cmd(0xB5); //select page from 0xb0 to 0xb7
 	oled_Write_Cmd(0x03); //fill every pixel on each page with 0x00, set lower column to 0
 	oled_Write_Cmd(0x10); //select upper nibble for the column
@@ -772,10 +712,8 @@ void refresh_OLED( void )
 		}
 	}
 
-	/* Wait for ~100 ms (for example) to get ~10 frames/sec refresh rate
-       - You should use TIM3 to implement this delay (e.g., via polling)
-    */
-	for(int i = 0; i < 10000; i++);
+
+	for(int i = 0; i < 10000; i++); // wait timer
 
 }
 
@@ -802,82 +740,65 @@ void oled_Write_Data( unsigned char data ) // this function is to send data byte
 void oled_Write( unsigned char Value ) //send single byte over spi to oled
 {
 
-    /* Wait until SPI1 is ready for writing (TXE = 1 in SPI1_SR) */
 	while((SPI1->SR & SPI_SR_TXE) == 0);
 
+  	HAL_SPI_Transmit( &SPI_Handle, &Value, 1, HAL_MAX_DELAY );
 
-    /* Send one 8-bit character:
-       - This function also sets BIDIOE = 1 in SPI1_CR1
-    */
-    HAL_SPI_Transmit( &SPI_Handle, &Value, 1, HAL_MAX_DELAY );
-
-
-    /* Wait until transmission is complete (TXE = 1 in SPI1_SR) */
-    while((SPI1->SR & SPI_SR_TXE) == 0); // same as above
+	while((SPI1->SR & SPI_SR_TXE) == 0); // same as above
 }
 
 
 void oled_config( void )
 {
-
+	
 	// Don't forget to enable GPIOB clock in RCC
 	// Don't forget to configure PB3/PB5 as AF0
 	// Don't forget to enable SPI1 clock in RCC
-
+	
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
-
+	
 	GPIOB->AFR[1] &= ~(0x0F << (3 * 4)); // clear AFR bit in PB3
 	GPIOB->AFR[1] &= ~(0x0F << (5 * 4)); // PB5
-
+	
 	GPIOB->AFR[1] |= (0x0 << (3 * 4)); // set AF0 to bit in PB3
 	GPIOB->AFR[1] |= (0x0 << (5 * 4)); // PB5
-
+	
 	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+	
+	SPI_Handle.Instance = SPI1;
+	
+	SPI_Handle.Init.Direction = SPI_DIRECTION_1LINE;
+	SPI_Handle.Init.Mode = SPI_MODE_MASTER;
+	SPI_Handle.Init.DataSize = SPI_DATASIZE_8BIT;
+	SPI_Handle.Init.CLKPolarity = SPI_POLARITY_LOW;
+	SPI_Handle.Init.CLKPhase = SPI_PHASE_1EDGE;
+	SPI_Handle.Init.NSS = SPI_NSS_SOFT;
+	SPI_Handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+	SPI_Handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	SPI_Handle.Init.CRCPolynomial = 7;
 
-    SPI_Handle.Instance = SPI1;
-
-    SPI_Handle.Init.Direction = SPI_DIRECTION_1LINE;
-    SPI_Handle.Init.Mode = SPI_MODE_MASTER;
-    SPI_Handle.Init.DataSize = SPI_DATASIZE_8BIT;
-    SPI_Handle.Init.CLKPolarity = SPI_POLARITY_LOW;
-    SPI_Handle.Init.CLKPhase = SPI_PHASE_1EDGE;
-    SPI_Handle.Init.NSS = SPI_NSS_SOFT;
-    SPI_Handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
-    SPI_Handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
-    SPI_Handle.Init.CRCPolynomial = 7;
-
-//
 // Initialize the SPI interface
-//
     HAL_SPI_Init( &SPI_Handle );
 
-//
 // Enable the SPI
-//
     __HAL_SPI_ENABLE( &SPI_Handle );
 
 
-    //Reset LED Display (RES# = PB4):
+    //Reset LED display
     GPIOB->ODR &= ~(GPIO_ODR_4); // make pin PB4 = 0, wait for a few ms
 	for(int i = 0; i < 1000; i++); //wait
     GPIOB->ODR |= GPIO_ODR_4; // make pin PB4 = 1, wait for a few ms
 	for(int i = 0; i < 1000; i++); //wait
 
-
-//
-// Send initialization commands to LED Display
-//
+// Send initialization commands to LED display
     for ( unsigned int i = 0; i < sizeof( oled_init_cmds ); i++ )
     {
         oled_Write_Cmd( oled_init_cmds[i] );
     }
 
 
-    /* Fill LED Display data memory (GDDRAM) with zeros:
-       - for each PAGE = 0, 1, ..., 7
-           set starting SEG = 0
-           call oled_Write_Data( 0x00 ) 128 times
-    */
+    // Fill LED Display memory with zeros
+
     for (int PAGE = 0xB0; PAGE <= 0xB7; PAGE++){ // the loop goes thru 8 pages of the OLED
     	oled_Write_Cmd(PAGE); //select page from 0xb0 to 0xb7
     	oled_Write_Cmd(0x00); //fill every pixel on each page with 0x00, set lower column to 0
@@ -893,4 +814,3 @@ void oled_config( void )
 
 #pragma GCC diagnostic pop
 
-// --------------------------------------------------------------------------
